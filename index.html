@@ -971,7 +971,7 @@ body.kiosk-map .kioskoff{display:block}
 .sndbtn{position:relative;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:0;background:rgba(35,62,54,.88);color:#fff8ec;font:700 14px/1 'Noto Sans KR',sans-serif;white-space:nowrap;user-select:none;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.18)}
 .sndbtn.on{background:#C43A30}
 .sndbtn:focus:not(:focus-visible){outline:none}
-@media (max-width:720px){.sndbox{top:12px;right:12px;padding:3px 10px 3px 3px;gap:8px}.sndbtn{height:30px;width:30px;padding:0;justify-content:center}.sndbtn span{display:none}.sndvol{width:70px}}
+@media (max-width:720px){.sndbox{top:12px;right:12px}.sndbtn{width:32px!important;height:32px!important}.sndbox.on .sndvol{width:70px}}
 /* 힉스필드 일러스트 */
 .hero{min-height:300px;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:30px 38px;background:#C8372D url(img/banner.webp) right 78%/cover no-repeat!important}
 .hero .h-k,.hero h2,.hero p{max-width:46%;text-shadow:0 1px 10px rgba(110,20,10,.35)}
@@ -1005,11 +1005,15 @@ body.kiosk-map .kioskoff{display:block}
 @keyframes csSteam{0%{opacity:0;transform:translateY(0) scale(.6)}25%{opacity:.85}100%{opacity:0;transform:translateY(-40px) scale(1.8)}}
 @media (max-width:720px){.cs-bub{max-width:86%;padding:9px 11px;gap:8px}.cs-bub p{font-size:14px}.cs-bub b{font-size:11px}.cs-bub em{font-size:11px}.cs-dish{height:76px}.cs-dish.on{width:80px}.cs-dish img{width:80px;height:76px}.cs-skip{bottom:72px;right:10px;height:30px;font-size:13px}}
 
-.sndbox{position:absolute;top:16px;right:16px;z-index:6;display:flex;align-items:center;gap:10px;padding:4px 14px 4px 4px;border-radius:999px;background:rgba(35,62,54,.55);user-select:none}
-.sndvol{-webkit-appearance:none;appearance:none;width:96px;height:6px;border-radius:999px;background:linear-gradient(90deg,#E6AA4C var(--p,60%),rgba(255,248,236,.45) var(--p,60%));outline:none;cursor:pointer;margin:0}
+.sndvol{-webkit-appearance:none;appearance:none;width:0;opacity:0;pointer-events:none;transition:width .3s,opacity .25s,margin .3s;height:6px;border-radius:999px;background:linear-gradient(90deg,#E6AA4C var(--p,60%),rgba(255,248,236,.45) var(--p,60%));outline:none;cursor:pointer;margin:0}
 .sndvol::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff8ec;border:2px solid #E6AA4C;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .sndvol::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff8ec;border:2px solid #E6AA4C}
 .sndvol:focus-visible{outline:2px solid #E6AA4C;outline-offset:4px}
+
+.sndbox{position:absolute;top:16px;right:16px;z-index:6;display:flex;align-items:center;padding:3px;border-radius:999px;background:rgba(35,62,54,.55);user-select:none;transition:padding .3s}
+.sndbox.on{padding:3px 14px 3px 3px}
+.sndbtn{width:38px!important;height:38px!important;padding:0!important;justify-content:center;border-radius:50%!important}
+.sndbox.on .sndvol{width:96px;opacity:1;pointer-events:auto;margin-left:10px}
 </style>
 <div class="toast" id="toast" hidden></div>
 
@@ -6999,7 +7003,7 @@ function drvUpdate(){
   return {cp,sp,f};}
 // ===== 사운드: 전기차 모터음·타이어음·바람·환경음 =====
 const SND={on:false,ctx:null,vol:.6,
-  setVol(v){this.vol=v;if(v>0&&!this.on){this.toggle();return;}if(v===0&&this.on){this.toggle();return;}if(this.ctx&&this.on)this.master.gain.setTargetAtTime(v*.9,this.ctx.currentTime,.05);},
+  setVol(v){if(v===0&&this.on){this.toggle();return;}this.vol=v;if(this.ctx&&this.on)this.master.gain.setTargetAtTime(v*.9,this.ctx.currentTime,.05);},
   init(){if(this.ctx)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const c=new AC();this.ctx=c;
     const master=c.createGain();master.gain.value=0;master.connect(c.destination);this.master=master;
     const o1=c.createOscillator();o1.type='sawtooth';const o2=c.createOscillator();o2.type='sine';
@@ -7009,7 +7013,7 @@ const SND={on:false,ctx:null,vol:.6,
     const mk=(type,fr,q)=>{const s=c.createBufferSource();s.buffer=buf;s.loop=true;const bf=c.createBiquadFilter();bf.type=type;bf.frequency.value=fr;bf.Q.value=q;const g=c.createGain();g.gain.value=0;s.connect(bf);bf.connect(g);g.connect(master);s.start();return {g,bf};};
     this.tyre=mk('bandpass',700,.8);this.wind=mk('lowpass',380,.3);this.amb=mk('highpass',3000,.2);
     Object.assign(this,{o1,o2,lp,eg,wg});this.birdT=0;},
-  toggle(){this.init();if(!this.ctx)return;this.on=!this.on;if(this.ctx.state==='suspended')this.ctx.resume();
+  toggle(){this.init();if(!this.on&&this.vol<.05){this.vol=.6;const r=$('sndVol');if(r){r.value='60';r.style.setProperty('--p','60%');}}if(!this.ctx)return;this.on=!this.on;if(this.ctx.state==='suspended')this.ctx.resume();
     this.master.gain.setTargetAtTime(this.on?this.vol*.9:0,this.ctx.currentTime,.15);syncSndBtn();},
   update(sp,brake,stopped,acc){if(!this.on||!this.ctx)return;const c=this.ctx,t=c.currentTime,T=.08;
     const load=Math.max(0,Math.min(1,acc/RC.accel));
@@ -7026,15 +7030,19 @@ const SND={on:false,ctx:null,vol:.6,
     const s=c.createBufferSource();s.buffer=buf;const f=c.createBiquadFilter();f.type='bandpass';f.Q.value=.7;f.frequency.setValueAtTime(big?300:600,t);f.frequency.exponentialRampToValueAtTime(big?140:260,t+1);const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(big?.16:.1,t+.35);g.gain.exponentialRampToValueAtTime(.0001,t+1.1);s.connect(f);f.connect(g);g.connect(this.master);s.start(t);s.stop(t+1.2);},
   chime(){if(!this.on||!this.ctx)return;const c=this.ctx,t=c.currentTime;[784,1047].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.value=f;const s=t+i*.16;
     g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.12,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+.9);o.connect(g);g.connect(this.master);o.start(s);o.stop(s+1);});}};
-function syncSndBtn(){const b=$('sndBtn');if(!b)return;b.setAttribute('aria-pressed',String(SND.on));b.querySelector('span').textContent=SND.on?'소리 끄기':'소리 켜기';b.classList.toggle('on',SND.on);}
+const SND_ON='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+  SND_OFF='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
+function syncSndBtn(){const b=$('sndBtn');if(!b)return;b.setAttribute('aria-pressed',String(SND.on));b.setAttribute('aria-label',SND.on?'음소거':'소리 켜기');b.title=SND.on?'음소거':'소리 켜기';b.innerHTML=SND.on?SND_ON:SND_OFF;b.classList.toggle('on',SND.on);
+  const box=b.parentNode;if(box&&box.classList)box.classList.toggle('on',SND.on);}
 function drvMountSnd(){const card=document.querySelector('#mapView .racecard');if(!card||$('sndBtn'))return;
   const b=document.createElement('button');b.id='sndBtn';b.className='sndbtn';b.type='button';b.setAttribute('aria-pressed','false');
   b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span>소리 켜기</span>';
   b.onclick=()=>SND.toggle();
   const box=document.createElement('div');box.className='sndbox';box.appendChild(b);
+  syncSndBtn();
   const r=document.createElement('input');r.type='range';r.min='0';r.max='100';r.value=String(Math.round(SND.vol*100));r.id='sndVol';r.className='sndvol';r.setAttribute('aria-label','소리 크기');
   const paint=()=>r.style.setProperty('--p',r.value+'%');paint();
-  r.oninput=()=>{paint();SND.setVol(+r.value/100);};box.appendChild(r);card.appendChild(box);}
+  r.oninput=()=>{paint();SND.setVol(+r.value/100);};box.appendChild(r);card.appendChild(box);syncSndBtn();}
 
 /* ===== 맞은편 차량: 2030교실 문구를 단 차들이 반대 차로로 지나감 ===== */
 const TRF={list:[],t:2,lt:-1,ready:false};
