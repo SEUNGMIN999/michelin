@@ -968,10 +968,10 @@ body.kiosk-map .kioskoff{display:block}
 .minimap{z-index:2}
 .ar-lm{margin:0;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:#233E36}
 .ar-lm span{font-size:13px;font-weight:800;color:#fff;background:#233E36;border-radius:999px;padding:2px 9px}
-.sndbtn{position:absolute;top:16px;right:16px;z-index:6;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:0;background:rgba(35,62,54,.88);color:#fff8ec;font:700 14px/1 'Noto Sans KR',sans-serif;white-space:nowrap;user-select:none;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.sndbtn{position:relative;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:0;background:rgba(35,62,54,.88);color:#fff8ec;font:700 14px/1 'Noto Sans KR',sans-serif;white-space:nowrap;user-select:none;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.18)}
 .sndbtn.on{background:#C43A30}
 .sndbtn:focus:not(:focus-visible){outline:none}
-@media (max-width:720px){.sndbtn{top:12px;right:12px;height:32px;padding:0 10px;font-size:13px}}
+@media (max-width:720px){.sndbox{top:12px;right:12px;padding:3px 10px 3px 3px;gap:8px}.sndbtn{height:30px;width:30px;padding:0;justify-content:center}.sndbtn span{display:none}.sndvol{width:70px}}
 /* 힉스필드 일러스트 */
 .hero{min-height:300px;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:30px 38px;background:#C8372D url(img/banner.webp) right 78%/cover no-repeat!important}
 .hero .h-k,.hero h2,.hero p{max-width:46%;text-shadow:0 1px 10px rgba(110,20,10,.35)}
@@ -1004,6 +1004,12 @@ body.kiosk-map .kioskoff{display:block}
 @keyframes csDish{from{transform:scale(.3) translateY(20px)}to{transform:none}}
 @keyframes csSteam{0%{opacity:0;transform:translateY(0) scale(.6)}25%{opacity:.85}100%{opacity:0;transform:translateY(-40px) scale(1.8)}}
 @media (max-width:720px){.cs-bub{max-width:86%;padding:9px 11px;gap:8px}.cs-bub p{font-size:14px}.cs-bub b{font-size:11px}.cs-bub em{font-size:11px}.cs-dish{height:76px}.cs-dish.on{width:80px}.cs-dish img{width:80px;height:76px}.cs-skip{bottom:72px;right:10px;height:30px;font-size:13px}}
+
+.sndbox{position:absolute;top:16px;right:16px;z-index:6;display:flex;align-items:center;gap:10px;padding:4px 14px 4px 4px;border-radius:999px;background:rgba(35,62,54,.55);user-select:none}
+.sndvol{-webkit-appearance:none;appearance:none;width:96px;height:6px;border-radius:999px;background:linear-gradient(90deg,#E6AA4C var(--p,60%),rgba(255,248,236,.45) var(--p,60%));outline:none;cursor:pointer;margin:0}
+.sndvol::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff8ec;border:2px solid #E6AA4C;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.sndvol::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff8ec;border:2px solid #E6AA4C}
+.sndvol:focus-visible{outline:2px solid #E6AA4C;outline-offset:4px}
 </style>
 <div class="toast" id="toast" hidden></div>
 
@@ -6776,7 +6782,6 @@ function r3BuildLeg(){
   leg.add(r3Ribbon(P,-90,-ROADW-.7,-.02,M('#7fb646')));leg.add(r3Ribbon(P,ROADW+.7,90,-.02,M('#7fb646')));
   leg.add(r3Ribbon(P,-160,-90,-.3,M('#8cc152')));leg.add(r3Ribbon(P,90,160,-.3,M('#8cc152')));
   // 정지선
-  const sp=P[RC.stopSeg]||P[P.length-1];const stop=new THREE.Mesh(new THREE.PlaneGeometry(ROADW-.6,1.2),new THREE.MeshStandardMaterial({color:'#ffffff'}));stop.rotation.set(-Math.PI/2,0,-sp.h);{const rv=r3Right(sp.h);stop.position.set(sp.x+rv.x*ROADW/2,sp.y+.06,sp.z+rv.z*ROADW/2);}leg.add(stop);
   // 원경: 산 또는 바다 (카메라를 따라다님)
   if(R3.far)R3.scene.remove(R3.far);const far=new THREE.Group();R3.far=far;
   if(RC.coast){const sea=new THREE.Mesh(new THREE.PlaneGeometry(1400,1400),new THREE.MeshStandardMaterial({color:'#3f9fd6',roughness:.3,metalness:.1}));sea.rotation.x=-Math.PI/2;sea.position.y=-3;far.add(sea);
@@ -6924,7 +6929,8 @@ function drvBuildLeg(leg,P){if(typeof trfReset==='function')trfReset();const n=P
       m.makeTranslation(p.x+r.x*lat,p.y+.45,p.z+r.z*lat);post.setMatrixAt(k,m);m.makeTranslation(p.x+r.x*lat,p.y+.78,p.z+r.z*lat);refl.setMatrixAt(k,m);k++;}}
   post.count=refl.count=k;post.castShadow=true;leg.add(post,refl);
   const lampM=new THREE.MeshStandardMaterial({color:'#4a4f57',metalness:.4,roughness:.5}),bulb=new THREE.MeshStandardMaterial({color:'#fff6d8',emissive:'#fff1c2',emissiveIntensity:1.2});
-  for(let i=10;i<n-2;i+=22){if(i>stop-10&&i<stop+44)continue;const s=(i/22)%2<1?-1:1,p=P[i],r=r3Right(p.h),lat=s*(ROADW+3);
+  const SG=[];RC.segs.forEach((sg,k)=>sg.sprites.forEach(q=>{if(['sign','board','big'].includes(q.kind))SG.push(k);}));
+  for(let i=10;i<n-2;i+=22){if(i>stop-10&&i<stop+44)continue;if(SG.some(k=>i>k-40&&i<k+6))continue;const s=(i/22)%2<1?-1:1,p=P[i],r=r3Right(p.h),lat=s*(ROADW+3);
     const g=new THREE.Group();const pole=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,5.2,8),lampM);pole.position.y=2.6;
     const arm=new THREE.Mesh(new THREE.BoxGeometry(1.8,.1,.12),lampM);arm.position.set(-s*.85,5.1,0);
     const head=new THREE.Mesh(new THREE.BoxGeometry(.6,.14,.3),bulb);head.position.set(-s*1.6,5.02,0);pole.castShadow=true;g.add(pole,arm,head);
@@ -6992,7 +6998,8 @@ function drvUpdate(){
   trfUpdate(f);if(typeof chefUpdate==='function')chefUpdate();
   return {cp,sp,f};}
 // ===== 사운드: 전기차 모터음·타이어음·바람·환경음 =====
-const SND={on:false,ctx:null,
+const SND={on:false,ctx:null,vol:.6,
+  setVol(v){this.vol=v;if(v>0&&!this.on){this.toggle();return;}if(v===0&&this.on){this.toggle();return;}if(this.ctx&&this.on)this.master.gain.setTargetAtTime(v*.9,this.ctx.currentTime,.05);},
   init(){if(this.ctx)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const c=new AC();this.ctx=c;
     const master=c.createGain();master.gain.value=0;master.connect(c.destination);this.master=master;
     const o1=c.createOscillator();o1.type='sawtooth';const o2=c.createOscillator();o2.type='sine';
@@ -7003,7 +7010,7 @@ const SND={on:false,ctx:null,
     this.tyre=mk('bandpass',700,.8);this.wind=mk('lowpass',380,.3);this.amb=mk('highpass',3000,.2);
     Object.assign(this,{o1,o2,lp,eg,wg});this.birdT=0;},
   toggle(){this.init();if(!this.ctx)return;this.on=!this.on;if(this.ctx.state==='suspended')this.ctx.resume();
-    this.master.gain.setTargetAtTime(this.on?.55:0,this.ctx.currentTime,.15);syncSndBtn();},
+    this.master.gain.setTargetAtTime(this.on?this.vol*.9:0,this.ctx.currentTime,.15);syncSndBtn();},
   update(sp,brake,stopped,acc){if(!this.on||!this.ctx)return;const c=this.ctx,t=c.currentTime,T=.08;
     const load=Math.max(0,Math.min(1,acc/RC.accel));
     this.o1.frequency.setTargetAtTime(38+sp*95,t,T);this.lp.frequency.setTargetAtTime(260+sp*700+load*300,t,T);
@@ -7023,7 +7030,11 @@ function syncSndBtn(){const b=$('sndBtn');if(!b)return;b.setAttribute('aria-pres
 function drvMountSnd(){const card=document.querySelector('#mapView .racecard');if(!card||$('sndBtn'))return;
   const b=document.createElement('button');b.id='sndBtn';b.className='sndbtn';b.type='button';b.setAttribute('aria-pressed','false');
   b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span>소리 켜기</span>';
-  b.onclick=()=>SND.toggle();card.appendChild(b);}
+  b.onclick=()=>SND.toggle();
+  const box=document.createElement('div');box.className='sndbox';box.appendChild(b);
+  const r=document.createElement('input');r.type='range';r.min='0';r.max='100';r.value=String(Math.round(SND.vol*100));r.id='sndVol';r.className='sndvol';r.setAttribute('aria-label','소리 크기');
+  const paint=()=>r.style.setProperty('--p',r.value+'%');paint();
+  r.oninput=()=>{paint();SND.setVol(+r.value/100);};box.appendChild(r);card.appendChild(box);}
 
 /* ===== 맞은편 차량: 2030교실 문구를 단 차들이 반대 차로로 지나감 ===== */
 const TRF={list:[],t:2,lt:-1,ready:false};
