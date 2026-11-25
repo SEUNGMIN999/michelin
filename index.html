@@ -6734,7 +6734,7 @@ function r3Init(){
   for(let i=0;i<14;i++){const g=new THREE.Group();for(let k=0;k<4;k++){const s=new THREE.Mesh(new THREE.IcosahedronGeometry(6+Math.random()*5,1),cm);s.position.set(k*8-12,Math.random()*3,Math.random()*4);s.scale.y=.55;g.add(s);}
     const a=i/14*Math.PI*2;g.position.set(Math.cos(a)*300,70+Math.random()*40,Math.sin(a)*300);g.lookAt(0,g.position.y,0);cg.add(g);}sc.add(cg);R3.clouds=cg;
   // 모델
-  R3.models.car=r3Geo(M3D.car);R3.models.shop=r3Geo(M3D.shop);R3.models.tree=r3Geo(M3D.tree);R3.models.stall=r3Geo(M3D.stall);
+  R3.models.car=r3Geo(M3D.car);R3.models.shop=r3Geo(M3D.shop);R3.models.tree=r3Geo(M3D.tree);R3.models.stall=r3Geo(M3D.stall);Object.values(R3.models).forEach(m=>m.traverse(o=>o.userData.shared=true));
   // 차량
   const car=new THREE.Group();const body=R3.models.car.clone();body.rotation.y=Math.PI;car.add(body);
   body.traverse(o=>{if(o.isMesh){o.material=o.material.clone();if(o.name==='tail')R3.mats.tail=o.material;if(o.name==='neon')(R3.mats.neon=R3.mats.neon||[]).push(o.material);}});
