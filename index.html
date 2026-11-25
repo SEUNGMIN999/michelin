@@ -6755,7 +6755,7 @@ function r3Fwd(h){return new THREE.Vector3(Math.sin(h),0,-Math.cos(h));}
 function r3Ribbon(P,l0,l1,y0,mat,every){const pos=[],idx=[];for(let i=0;i<P.length;i++){const r=r3Right(P[i].h);
     pos.push(P[i].x+r.x*l0,P[i].y+y0,P[i].z+r.z*l0,P[i].x+r.x*l1,P[i].y+y0,P[i].z+r.z*l1);}
   for(let i=0;i<P.length-1;i++){if(every&&!every(i))continue;const a=i*2;idx.push(a,a+2,a+1,a+1,a+2,a+3);}
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();const m=new THREE.Mesh(g,mat);m.receiveShadow=true;return m;}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();const m=new THREE.Mesh(g,mat);m.receiveShadow=true;m.userData.ribbon=true;return m;}
 function r3Hill(r,h,color,seed,fog){const g=new THREE.SphereGeometry(1,40,14,0,Math.PI*2,0,Math.PI/2),p=g.attributes.position,v=new THREE.Vector3();
   const n=(x,z)=>Math.sin(x*2.1+seed)*.5+Math.sin(z*3.3+seed*1.7)*.35+Math.sin((x+z)*5.2+seed*.7)*.18;
   for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const ang=Math.atan2(v.z,v.x),y=v.y;
@@ -6764,7 +6764,15 @@ function r3Hill(r,h,color,seed,fog){const g=new THREE.SphereGeometry(1,40,14,0,M
   g.computeVertexNormals();return new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,flatShading:true,roughness:1,fog:!!fog}));}
 const LM_SCALE={'진도군':2.8,'화순군':2.2,'강진군':1.7,'순천시':1.7,'함평군':1.3,'완도군':1.15,'영광군':1.15,'해남군':1.2,'고흥군':1.3,'영암군':1.2,'장성군':1.3,'목포시':1.3,'광양시':1.3,'신안군':1.3};
 function r3BuildLeg(){
-  if(R3.leg){R3.scene.remove(R3.leg);R3.leg.traverse(o=>{if(o.geometry&&!o.userData.shared)o.geometry.dispose();});}
+  const disp=g=>g.traverse(o=>{if(o.geometry&&!o.userData.shared)o.geometry.dispose();});
+  if(R3.keep){chefFromKeep();R3.scene.remove(R3.keep);disp(R3.keep);R3.keep=null;}
+  R3.keeping=false;
+  if(R3.leg){R3.scene.remove(R3.leg);
+    if(DRV.lastCP){const c=DRV.lastCP,fw=r3Fwd(c.h),keep=new THREE.Group();
+      [...R3.leg.children].forEach(o=>{if(o.userData.ribbon||o.isInstancedMesh||o.userData.lm)return;const dx=o.position.x-c.p.x,dz=o.position.z-c.p.z,d=dx*fw.x+dz*fw.z;
+        if(d>-50&&d<44){R3.leg.remove(o);keep.add(o);}});
+      if(keep.children.length){R3.keep=keep;R3.keeping=true;R3.scene.add(keep);R3.keepAt=c.p.clone();}}
+    disp(R3.leg);}
   const leg=new THREE.Group();R3.leg=leg;R3.segsRef=RC.segs;
   // 경로 계산
   const P=[];let x=0,z=0,h=0;const L=RC.segL*SCL;
@@ -6787,28 +6795,35 @@ function r3BuildLeg(){
   leg.add(r3Ribbon(P,-160,-90,-.3,M('#8cc152')));leg.add(r3Ribbon(P,90,160,-.3,M('#8cc152')));
   // 정지선
   // 원경: 산 또는 바다 (카메라를 따라다님)
-  if(R3.far)R3.scene.remove(R3.far);const far=new THREE.Group();R3.far=far;
+  if(R3.far)R3.scene.remove(R3.far);R3.farCache=R3.farCache||{};const fk=RC.coast?'sea':'land';if(R3.farCache[fk]){R3.far=R3.farCache[fk];R3.scene.add(R3.far);}else{const far=new THREE.Group();R3.far=far;R3.farCache[fk]=far;far.traverse(o=>o.userData.shared=true);
   if(RC.coast){const sea=new THREE.Mesh(new THREE.PlaneGeometry(1400,1400),new THREE.MeshStandardMaterial({color:'#3f9fd6',roughness:.3,metalness:.1}));sea.rotation.x=-Math.PI/2;sea.position.y=-3;far.add(sea);
     for(let i=0;i<7;i++){const a=i*0.9+.3;const isl=r3Hill(26+i*4,10+i*2,'#6fae62',i+3,true);isl.position.set(Math.cos(a)*300,-3.5,Math.sin(a)*300);far.add(isl);}}
   else{const gp=new THREE.Mesh(new THREE.PlaneGeometry(1400,1400),M('#86bd55'));gp.rotation.x=-Math.PI/2;gp.position.y=-4;far.add(gp);}
   for(let i=0;i<22;i++){const a=i/22*Math.PI*2+((i*7)%3)*.04,rd=420+((i*37)%5)*22;const mt=r3Hill(95+((i*13)%4)*22,38+((i*7)%5)*13,i%2?'#93b4c6':'#a6c3d3',i,false);mt.position.set(Math.cos(a)*rd,-8,Math.sin(a)*rd);mt.rotation.y=i*1.3;far.add(mt);}
   for(let i=0;i<16;i++){const a=i/16*Math.PI*2+.2,rd=300+((i*29)%4)*18;const mt=r3Hill(60+((i*11)%4)*14,20+((i*5)%4)*7,i%2?'#7fa889':'#8bb394',i+40,false);mt.position.set(Math.cos(a)*rd,-6,Math.sin(a)*rd);mt.rotation.y=i*.9;far.add(mt);}
-  R3.scene.add(far);
+  far.traverse(o=>o.userData.shared=true);R3.scene.add(far);}
   // 길가 오브젝트
   R3.shopObj=null;R3.prevShopObj=null;
-  RC.segs.forEach((s,i)=>{if(!s.sprites.length)return;s.sprites.forEach(spr=>{const o=r3Sprite(spr);if(!o)return;const ii=spr.kind==='shop'?Math.min(P.length-1,spr.data&&spr.data.prev?Math.round((R3.fStart||0)+4):RC.stopSeg+4):i,p=P[ii],r=r3Right(p.h),lat=(spr.kind==='shop'?2.75:spr.off)*ROADW;
+  RC.segs.forEach((s,i)=>{if(!s.sprites.length)return;s.sprites.forEach(spr=>{const nearK=R3.keeping&&i<(R3.fStart||0)+22;if(R3.keeping&&spr.kind==='shop'&&spr.data&&spr.data.prev)return;if(nearK&&spr.kind!=='shop'&&spr.kind!=='sign')return;const o=r3Sprite(spr);if(!o)return;const ii=spr.kind==='shop'?Math.min(P.length-1,spr.data&&spr.data.prev?Math.round((R3.fStart||0)+4):RC.stopSeg+4):i,p=P[ii],r=r3Right(p.h),lat=(spr.kind==='shop'?2.75:spr.off)*ROADW;
     if(spr.kind==='shop'&&spr.data&&spr.data.prev)R3.prevShopObj=o;o.position.set(p.x+r.x*lat,p.y,p.z+r.z*lat);o.rotation.y=-p.h+(o.userData.face||0)*(spr.off>0?1:-1);leg.add(o);});});
   const rr=rnd(RC.segs.length*13+7),tg=R3.models.tree;const rock=new THREE.MeshStandardMaterial({color:'#9a9488',flatShading:true});
+  R3.defer=[];const tk=f=>R3.defer.push(()=>{if(R3.leg===leg)f();});
+  tk(()=>{
   for(let i=4;i<P.length-2;i+=2){for(const side of[-1,1]){if(rr()<.55)continue;const p=P[i],r=r3Right(p.h),lat=side*(24+rr()*60);
-      if(side>0&&Math.abs(i-RC.stopSeg-4)<18)continue;if(side<0&&Math.abs(i-RC.stopSeg-38)<22)continue;
+      if(R3.keeping&&i<(R3.fStart||0)+22)continue;if(side>0&&Math.abs(i-RC.stopSeg-4)<18)continue;if(side<0&&Math.abs(i-RC.stopSeg-38)<22)continue;
       let o;if(rr()<.8){o=tg.clone();o.scale.setScalar(.9+rr()*1.3);o.rotation.y=rr()*6;}else{o=new THREE.Mesh(new THREE.DodecahedronGeometry(.8+rr()*1.2,0),rock);o.castShadow=true;o.position.y=.3;}
       const y0=o.position.y;o.position.set(p.x+r.x*lat,p.y+y0-.1,p.z+r.z*lat);leg.add(o);}}
+  });
+  tk(()=>{
   // 꽃밭 점
   const fl=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.18,0),new THREE.MeshStandardMaterial({color:'#ffffff',flatShading:true}),1400);const mm=new THREE.Matrix4(),col=new THREE.Color();let k=0;
   for(let i=2;i<P.length-1&&k<1400;i++){for(let j=0;j<3&&k<1400;j++){const p=P[i],r=r3Right(p.h),side=rr()<.5?-1:1,lat=side*(ROADW+1.6+rr()*18);mm.makeTranslation(p.x+r.x*lat,p.y+.05,p.z+r.z*lat);fl.setMatrixAt(k,mm);fl.setColorAt(k,col.set(['#ffe066','#ff8fa3','#ffffff','#c39bff'][k%4]));k++;}}
   fl.count=k;leg.add(fl);
+  });
+  tk(()=>{
   // 지역 랜드마크
-  const lmName=RC.toName;if(LANDMARK[lmName]){const lm=r3Landmark(lmName);if(lm){const i=Math.min(P.length-1,RC.stopSeg+38),p=P[i],rv=r3Right(p.h);lm.position.set(p.x-rv.x*31,p.y,p.z-rv.z*31);lm.rotation.y=-p.h+.45;lm.scale.setScalar(LM_SCALE[lmName]||1.6);leg.add(lm);R3.lm=lm;}}
+  const lmName=RC.toName;if(LANDMARK[lmName]){const lm=r3Landmark(lmName);if(lm){const i=Math.min(P.length-1,RC.stopSeg+38),p=P[i],rv=r3Right(p.h);lm.userData.lm=true;lm.position.set(p.x-rv.x*31,p.y,p.z-rv.z*31);lm.rotation.y=-p.h+.45;lm.scale.setScalar(LM_SCALE[lmName]||1.6);leg.add(lm);R3.lm=lm;}}
+  });
   drvBuildLeg(leg,P);R3.scene.add(leg);
 }
 function r3Sprite(sp){const d=sp.data||{};
@@ -6848,6 +6863,7 @@ function rcRender(){if(!RC.ctx||!RC.segs.length)return;
   (R3.mats.neon||[]).forEach(m=>m.emissiveIntensity=1.2+.5*Math.sin(t*5));
   if(R3.leg)R3.leg.traverse(o=>{if(o.userData.flag)o.rotation.y=Math.sin(t*4+o.id)*.25;if(o.userData.wing)o.rotation.y=o.userData.wing*Math.sin(t*3)*.5;if(o.userData.smoke!==undefined){const k=(t*.6+o.userData.smoke*.25)%1;o.position.y=7+k*7;o.scale.setScalar(.6+k*1.6);o.material.opacity=.8*(1-k);}});
   r3UpdateShop();
+  if(R3.defer&&R3.defer.length)R3.defer.shift()();
   R3.renderer.render(R3.scene,cam);if(typeof chefPlace==='function')chefPlace();
   RC.ctx.clearRect(0,0,RC.W,RC.H);rcHud();}
 
@@ -6934,25 +6950,26 @@ function drvBuildLeg(leg,P){if(typeof trfReset==='function')trfReset();const n=P
   post.count=refl.count=k;post.castShadow=true;leg.add(post,refl);
   const lampM=new THREE.MeshStandardMaterial({color:'#4a4f57',metalness:.4,roughness:.5}),bulb=new THREE.MeshStandardMaterial({color:'#fff6d8',emissive:'#fff1c2',emissiveIntensity:1.2});
   const SG=[];RC.segs.forEach((sg,k)=>sg.sprites.forEach(q=>{if(['sign','board','big'].includes(q.kind))SG.push(k);}));
-  for(let i=10;i<n-2;i+=22){if(i>stop-10&&i<stop+44)continue;if(SG.some(k=>i>k-40&&i<k+6))continue;const s=(i/22)%2<1?-1:1,p=P[i],r=r3Right(p.h),lat=s*(ROADW+3);
+  for(let i=10;i<n-2;i+=22){if(i>stop-10&&i<stop+44)continue;if(SG.some(k=>i>k-40&&i<k+6))continue;if(R3.keeping&&i<(R3.fStart||0)+22)continue;const s=(i/22)%2<1?-1:1,p=P[i],r=r3Right(p.h),lat=s*(ROADW+3);
     const g=new THREE.Group();const pole=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,5.2,8),lampM);pole.position.y=2.6;
     const arm=new THREE.Mesh(new THREE.BoxGeometry(1.8,.1,.12),lampM);arm.position.set(-s*.85,5.1,0);
     const head=new THREE.Mesh(new THREE.BoxGeometry(.6,.14,.3),bulb);head.position.set(-s*1.6,5.02,0);pole.castShadow=true;g.add(pole,arm,head);
     g.position.set(p.x+r.x*lat,p.y,p.z+r.z*lat);g.rotation.y=-p.h;leg.add(g);}
   // 주차 공간: 정차 지점 오른쪽 차로 가장자리
-  drvBay(leg,P,Math.round(R3.fStart||0));
+  if(!R3.keeping)drvBay(leg,P,Math.round(R3.fStart||0));
   drvBay(leg,P,stop);
-  if(typeof CHEF!=='undefined'&&CHEF.g){if(CHEF.g.parent)CHEF.g.parent.remove(CHEF.g);if(R3.prevShopObj&&CHEF.state==='bye')chef3dAttach(R3.prevShopObj);}
+  if(typeof CHEF!=='undefined'&&CHEF.g&&!R3.keeping){if(CHEF.g.parent)CHEF.g.parent.remove(CHEF.g);if(R3.prevShopObj&&CHEF.state==='bye')chef3dAttach(R3.prevShopObj);}
   // 진입로: 도로 가장자리에서 식당 앞마당까지
   const shopI=Math.min(n-1,stop+4),sp=P[shopI],sr=r3Right(sp.h);
   const pave=new THREE.MeshStandardMaterial({color:'#c9b9a3',roughness:.95,side:THREE.DoubleSide});
-  const sub=P.slice(Math.max(0,shopI-3),Math.min(n,shopI+4));if(sub.length>1){const dw=r3Ribbon(sub,ROADW+1,ROADW*2.75-4,.075,pave);leg.add(dw);}
+  const sub=P.slice(Math.max(0,shopI-3),Math.min(n,shopI+4));if(sub.length>1){const dw=r3Ribbon(sub,ROADW+1,ROADW*2.75-4,.075,pave);dw.userData.ribbon=false;leg.add(dw);}
 }
 // 차량·카메라 갱신 (rcRender에서 호출)
 function drvUpdate(){
   const now=RC.time;let dt=DRV.lt<0?1/60:now-DRV.lt;DRV.lt=now;dt=Math.max(1/240,Math.min(.06,dt));
   const f=(RC.pos+RC.camH*RC.camD)/RC.segL,cp=r3SplinePoint(f),sp=RC.speed/RC.max,car=R3.car;
-  DRV.lastCP={p:cp.p.clone(),h:cp.h};
+  DRV.lastCP={p:cp.p.clone(),h:cp.h};DRV.lastF=f;
+  if(R3.keep&&R3.keepAt&&TK.state==='drive'&&car.position.distanceTo(R3.keepAt)>70){R3.scene.remove(R3.keep);R3.keep.traverse(o=>{if(o.geometry&&!o.userData.shared)o.geometry.dispose();});chefFromKeep();R3.keep=null;}
   // 주차: 위치 기반 곡선 경로로 오른쪽 주차칸에 들어가고, 출발할 때 차로로 빠져나옴
   const rem=Math.max(0,RC.target-RC.pos),stopped=TK.state!=='drive';
   const Lp=ROADW*.78,base=ROADW*.5+RC.px*ROADW*.12,sm=x=>{x=Math.max(0,Math.min(1,x));return x*x*x*(x*(x*6-15)+10);};
@@ -7044,6 +7061,8 @@ function drvMountSnd(){const card=document.querySelector('#mapView .racecard');i
   const paint=()=>r.style.setProperty('--p',r.value+'%');paint();
   r.oninput=()=>{paint();SND.setVol(+r.value/100);};box.appendChild(r);card.appendChild(box);syncSndBtn();}
 
+
+function chefFromKeep(){if(typeof CHEF==='undefined'||!CHEF.g||!R3.keep)return;let a=CHEF.g.parent;while(a&&a!==R3.keep)a=a.parent;if(a)CHEF.g.parent.remove(CHEF.g);}
 /* ===== 맞은편 차량: 2030교실 문구를 단 차들이 반대 차로로 지나감 ===== */
 const TRF={list:[],t:2,lt:-1,ready:false};
 const TRF_TYPES=[
@@ -7075,7 +7094,7 @@ function trfBuild(t){const g=new THREE.Group(),M=(c,o={})=>new THREE.MeshStandar
   const sh=new THREE.Mesh(new THREE.PlaneGeometry(W+.8,len+.8),new THREE.MeshBasicMaterial({map:r3ShadowTex(),transparent:true,depthWrite:false,opacity:.7}));sh.rotation.x=-Math.PI/2;sh.position.y=.03;g.add(sh);
   g.visible=false;return g;}
 function trfInit(){if(TRF.ready||!R3.scene)return;TRF.ready=true;[...TRF_TYPES,...TRF_TYPES].forEach(t=>{const g=trfBuild(t);R3.scene.add(g);TRF.list.push({g,t,f:0,on:false,v:13,passed:false});});}
-function trfReset(){TRF.list.forEach(o=>{o.on=false;o.g.visible=false;});TRF.t=.6;}
+function trfReset(){const n=R3.path.length,keep=R3.keeping&&DRV.lastF!=null;TRF.list.forEach(o=>{if(keep&&o.on){o.f=(R3.fStart||0)+(o.f-DRV.lastF);if(o.f>1&&o.f<n-3)return;}o.on=false;o.g.visible=false;});TRF.t=keep?1.2:.6;}
 function trfUpdate(carF){if(!TRF.ready)trfInit();const now=performance.now()/1000;let dt=TRF.lt<0?1/60:now-TRF.lt;TRF.lt=now;dt=Math.max(0,Math.min(.06,dt))*(S.speed||1);
   const n=R3.path.length,L=RC.segL*SCL;
   TRF.t-=dt;if(TRF.t<=0){const moving=RC.speed>RC.max*.2;TRF.t=moving?1+Math.random()*1.6:2.6+Math.random()*2.5;const idle=TRF.list.filter(o=>!o.on);const ahead=carF+(moving?75+Math.random()*30:30+Math.random()*14);
