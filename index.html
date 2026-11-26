@@ -1014,6 +1014,10 @@ body.kiosk-map .kioskoff{display:block}
 .sndbox.on{padding:3px 14px 3px 3px}
 .sndbtn{width:38px!important;height:38px!important;padding:0!important;justify-content:center;border-radius:50%!important}
 .sndbox.on .sndvol{width:96px;opacity:1;pointer-events:auto;margin-left:10px}
+
+/* 넓은 화면(스탠바이미 고 등)에서 양옆 여백 없이 꽉 차게 */
+.screen{max-width:none!important}
+@media (min-width:1400px) and (min-aspect-ratio:16/10){#mapScreen .racecard{min-height:calc(100vh - 150px)!important}}
 </style>
 <div class="toast" id="toast" hidden></div>
 
@@ -6401,7 +6405,7 @@ function renderRegion(){
 }
 function wireTruck(box){$('truckRun').onclick=onTruckBtn;const n=$('truckNext');if(n)n.onclick=()=>{TK.paused=false;goNext(true);};
   box.querySelectorAll('.modeseg button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));syncTruckBtn();}
-function setView(v){VIEW=v;['today','menu','map'].forEach(k=>$(k+'View').hidden=k!==v);
+function setView(v){VIEW=v;setTimeout(()=>{if(typeof awakeSync==='function')awakeSync();},0);['today','menu','map'].forEach(k=>$(k+'View').hidden=k!==v);
   document.querySelectorAll('.vtab').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
   if(v==='today')renderToday();if(v==='menu')renderMenu();if(v==='map'){renderMap();renderRegion();}}
 document.querySelectorAll('.vtab').forEach(b=>b.onclick=()=>setView(b.dataset.v));
@@ -7527,6 +7531,18 @@ function lifeUpdate(dt){
   if(tc.nodT>0){tc.nodT-=dt;tc.nodY=Math.sin((.7-tc.nodT)/.7*Math.PI*2)*1.4;}else{tc.nodY=0;if(!tc.moving&&tc.y>250&&Math.random()<dt*.3)tc.nodT=.7;}
 }
 const _lifeUpd=update;update=function(dt){_lifeUpd(dt);lifeUpdate(dt);};
+
+
+/* ===== 화면 꺼짐 방지: 맛집 지도 화면에서 계속 켜 둠 ===== */
+const AWAKE={lock:null,vid:null,want:false};
+function awakeVideo(){if(AWAKE.vid)return AWAKE.vid;const v=document.createElement('video');v.muted=true;v.loop=true;v.playsInline=true;v.setAttribute('playsinline','');v.setAttribute('muted','');
+  v.src='data:video/mp4;base64,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';v.style.cssText='position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1';document.body.appendChild(v);AWAKE.vid=v;return v;}
+async function awakeOn(){AWAKE.want=true;
+  if('wakeLock' in navigator){try{if(!AWAKE.lock){AWAKE.lock=await navigator.wakeLock.request('screen');AWAKE.lock.addEventListener('release',()=>{AWAKE.lock=null;});}return;}catch(e){}}
+  const v=awakeVideo();if(v.paused)v.play().catch(()=>{});}
+function awakeOff(){AWAKE.want=false;if(AWAKE.lock){AWAKE.lock.release().catch(()=>{});AWAKE.lock=null;}if(AWAKE.vid&&!AWAKE.vid.paused)AWAKE.vid.pause();}
+function awakeSync(){const need=VIEW==='map'&&document.visibilityState==='visible';if(need&&(!AWAKE.lock&&(!AWAKE.vid||AWAKE.vid.paused)))awakeOn();else if(!need&&AWAKE.want)awakeOff();}
+document.addEventListener('visibilitychange',awakeSync);['pointerdown','keydown','touchstart'].forEach(e=>addEventListener(e,awakeSync,{passive:true}));setInterval(awakeSync,3000);
 
 $('toMap').onclick=()=>{BOOTH=false;$('boothBtn').setAttribute('aria-pressed','false');clearTimeout(boothT);showMap();};
 $('boothBtn').onclick=()=>{BOOTH=!BOOTH;$('boothBtn').setAttribute('aria-pressed',BOOTH);toast(BOOTH?'자동 순환 시작':'자동 순환 종료');
